@@ -1,0 +1,25 @@
+version: '3'
+services:
+    microengine:
+        build: "."
+        environment:
+            - CLAMD_URL=tcp://clamav:3310
+    geth:
+        image: "ethereum/client-go:alpine"
+        ports:
+            - "30303:30303"
+        volumes:
+            - "./ethereum:/root/.ethereum"
+    clamav:
+        image: "polyswarm/clamav:latest"
+        ports:
+            - "3310:3310"
+    ipfs:
+        image: "polyswarm/ipfs:latest"
+        volumes:
+            - "./staging:/export"
+            - "./data:/data/ipfs"
+        ports:
+            - "4001:4001"
+            - "5001:5001"
+            - "8080:8080"
