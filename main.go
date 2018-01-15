@@ -1,14 +1,17 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"log"
 	"os"
 	"time"
 
 	"github.com/dutchcoders/go-clamd"
+
+	"github.com/ipfs/go-ipfs-api"
 )
+
+const MAX_DATA_SIZE = 50 * 1024 * 1024
 
 func connectToClamd(url string) (*clamd.Clamd, error) {
 	ret := clamd.NewClamd(url)
@@ -29,15 +32,36 @@ func connectToClamd(url string) (*clamd.Clamd, error) {
 }
 
 func main() {
+	time.Sleep(15 * time.Second)
 	log.Println("Starting microengine")
 
-	c, err := connectToClamd(os.Getenv("CLAMD_URL"))
+	ipfssh := shell.NewShell(os.Getenv("IPFS_HOST"))
+	if ipfssh == nil {
+		log.Fatalln("could not connect to ipfs")
+	}
+	log.Println(ipfssh)
+
+	ipfs_uri := "QmYwAPJzv5CZsnA625s3Xf2nemtYgPpHdWEz79ojWnPbdG/readme"
+	//	stat, err := ipfssh.ObjectStat(ipfs_uri)
+	//	log.Println(stat)
+	//	if err != nil {
+	//		log.Fatalln(err)
+	//	}
+	//
+	//	if stat.DataSize > MAX_DATA_SIZE || stat.NumLinks == 0 {
+	//		log.Fatalln("invalid artifact at uri")
+	//	}
+
+	r, err := ipfssh.Cat(ipfs_uri)
+	defer r.Close()
+
+	c, err := connectToClamd(os.Getenv("CLAMD_HOST"))
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	reader := bytes.NewReader(clamd.EICAR)
-	response, err := c.ScanStream(reader, make(chan bool))
+	//reader := bytes.NewReader(clamd.EICAR)
+	response, err := c.ScanStream(r, make(chan bool))
 
 	for s := range response {
 		log.Printf("%v %v\n", s, err)
