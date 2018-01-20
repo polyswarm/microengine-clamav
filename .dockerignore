@@ -1,4 +1,4 @@
 *.swp
 data/
 staging
-ethereum/
+priv_testnet/
