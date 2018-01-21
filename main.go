@@ -14,7 +14,6 @@ import (
 
 	"github.com/dutchcoders/go-clamd"
 	"github.com/gorilla/websocket"
-	"github.com/ipfs/go-ipfs-api"
 	"github.com/polyswarm/polyswarm/bounty"
 	uuid "github.com/satori/go.uuid"
 )
@@ -40,24 +39,6 @@ func connectToClamd(host string) (*clamd.Clamd, error) {
 	}
 }
 
-func connectToIpfs(host string) (*shell.Shell, error) {
-	ret := shell.NewShell(host)
-
-	timeout := time.After(60 * time.Second)
-	tick := time.Tick(time.Second)
-
-	for {
-		select {
-		case <-timeout:
-			return nil, errors.New("timeout waiting for ipfs")
-		case <-tick:
-			if ret.IsUp() {
-				return ret, nil
-			}
-		}
-	}
-}
-
 func connectToPolyswarm(host string) (*websocket.Conn, error) {
 	u := url.URL{Scheme: "ws", Host: host, Path: "/events"}
 
@@ -77,9 +58,27 @@ func connectToPolyswarm(host string) (*websocket.Conn, error) {
 	}
 }
 
-// Eventually do this from polyswarm, we need a better artifact API though
-func retrieveFileFromIpfs(ipfssh *shell.Shell, resource string) (io.ReadCloser, error) {
-	return ipfssh.Cat(resource)
+func retrieveFileFromIpfs(host, resource string) (io.ReadCloser, error) {
+	artifactUrl := url.URL{Scheme: "http", Host: host, Path: path.Join("artifacts", resource)}
+	statResp, err := http.Get(artifactUrl.String() + "/stat")
+	if err != nil {
+		return nil, err
+	}
+	defer statResp.Body.Close()
+
+	var stat bounty.ArtifactStats
+	json.NewDecoder(statResp.Body).Decode(&stat)
+
+	if stat.DataSize > MAX_DATA_SIZE || stat.NumLinks > 0 {
+		return nil, errors.New("invalid ipfs artifact")
+	}
+
+	resp, err := http.Get(artifactUrl.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Body, nil
 }
 
 func main() {
@@ -87,11 +86,6 @@ func main() {
 	log.Println("Starting microengine")
 
 	clamd, err := connectToClamd(os.Getenv("CLAMD_HOST"))
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	ipfssh, err := connectToIpfs(os.Getenv("IPFS_HOST"))
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -137,11 +131,12 @@ func main() {
 				continue
 			}
 
-			r, err := retrieveFileFromIpfs(ipfssh, uri)
+			r, err := retrieveFileFromIpfs(polyswarmHost, uri)
 			if err != nil {
 				log.Println("error retrieving artifact:", err)
 				continue
 			}
+			defer r.Close()
 
 			response, err := clamd.ScanStream(r, make(chan bool))
 			if err != nil {
