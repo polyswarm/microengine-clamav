@@ -7,9 +7,10 @@ ENV PATH $GOPATH/bin:$PATH
 RUN mkdir -p $GOPATH/src/clamav-microengine/
 ADD . $GOPATH/src/clamav-microengine/
 
-RUN set -x && \
-    cd $GOPATH/src/clamav-microengine && \
-    go get . && \
-    go install
+#RUN set -x && \
+#    cd $GOPATH/src/clamav-microengine && \
+#    go get . && \
+#    go install
+ADD clamav-microengine $GOPATH/bin/clamav-microengine
 
 ENTRYPOINT $GOPATH/bin/clamav-microengine

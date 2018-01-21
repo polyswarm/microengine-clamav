@@ -1,17 +1,22 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"time"
 
 	"github.com/dutchcoders/go-clamd"
 	"github.com/gorilla/websocket"
 	"github.com/ipfs/go-ipfs-api"
 	"github.com/polyswarm/polyswarm/bounty"
+	uuid "github.com/satori/go.uuid"
 )
 
 const MAX_DATA_SIZE = 50 * 1024 * 1024
@@ -44,7 +49,7 @@ func connectToIpfs(host string) (*shell.Shell, error) {
 	for {
 		select {
 		case <-timeout:
-			return nil, errors.New("timeout waiting for clamd")
+			return nil, errors.New("timeout waiting for ipfs")
 		case <-tick:
 			if ret.IsUp() {
 				return ret, nil
@@ -55,7 +60,6 @@ func connectToIpfs(host string) (*shell.Shell, error) {
 
 func connectToPolyswarm(host string) (*websocket.Conn, error) {
 	u := url.URL{Scheme: "ws", Host: host, Path: "/events"}
-	log.Println(u.String())
 
 	timeout := time.After(60 * time.Second)
 	tick := time.Tick(time.Second)
@@ -73,23 +77,27 @@ func connectToPolyswarm(host string) (*websocket.Conn, error) {
 	}
 }
 
+// Eventually do this from polyswarm, we need a better artifact API though
+func retrieveFileFromIpfs(ipfssh *shell.Shell, resource string) (io.ReadCloser, error) {
+	return ipfssh.Cat(resource)
+}
+
 func main() {
 	time.Sleep(15 * time.Second)
 	log.Println("Starting microengine")
 
-	clam, err := connectToClamd(os.Getenv("CLAMD_HOST"))
+	clamd, err := connectToClamd(os.Getenv("CLAMD_HOST"))
 	if err != nil {
 		log.Fatalln(err)
 	}
-	_ = clam
 
 	ipfssh, err := connectToIpfs(os.Getenv("IPFS_HOST"))
 	if err != nil {
 		log.Fatalln(err)
 	}
-	_ = ipfssh
 
-	conn, err := connectToPolyswarm(os.Getenv("POLYSWARM_HOST"))
+	polyswarmHost := os.Getenv("POLYSWARM_HOST")
+	conn, err := connectToPolyswarm(polyswarmHost)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -103,6 +111,72 @@ func main() {
 
 		var event bounty.Event
 		json.Unmarshal(message, &event)
+
+		if event.Type == "Bounty" {
+			body, ok := event.Body.(map[string]interface{})
+			if !ok {
+				log.Println("invalid bounty object")
+				continue
+			}
+
+			log.Println(body)
+
+			guid, ok := body["Guid"].(string)
+			if !ok {
+				log.Println("invalid guid")
+				continue
+			}
+
+			uuid, err := uuid.FromString(guid)
+			if err != nil {
+				log.Println("invalid uuid:", err)
+				continue
+			}
+
+			uri, ok := body["ArtifactURI"].(string)
+			if !ok {
+				log.Println("invalid uri:", err)
+				continue
+			}
+
+			r, err := retrieveFileFromIpfs(ipfssh, uri)
+			if err != nil {
+				log.Println("error retrieving artifact:", err)
+				continue
+			}
+
+			response, err := clamd.ScanStream(r, make(chan bool))
+			if err != nil {
+				log.Println("error scanning artifact:", err)
+				continue
+			}
+
+			var buffer bytes.Buffer
+			for s := range response {
+				buffer.WriteString(s.Description)
+				buffer.WriteString("\n")
+			}
+			metadata := buffer.String()
+
+			var a struct {
+				Verdicts []bool `json:"verdicts"`
+				Bid      int    `json:"bid"`
+				Metadata string `json:"metadata"`
+			}
+
+			a.Verdicts = []bool{true}
+			a.Bid = 10
+			a.Metadata = metadata
+
+			j, err := json.Marshal(a)
+			if err != nil {
+				log.Println("error marshaling assertion:", err)
+				continue
+			}
+
+			assertionUrl := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("bounties", uuid.String(), "assertions")}
+			http.Post(assertionUrl.String(), "application/json", bytes.NewBuffer(j))
+		}
 
 		log.Println("recv:", event)
 	}
