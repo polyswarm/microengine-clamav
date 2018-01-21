@@ -119,8 +119,6 @@ func main() {
 				continue
 			}
 
-			log.Println(body)
-
 			guid, ok := body["Guid"].(string)
 			if !ok {
 				log.Println("invalid guid")
@@ -151,12 +149,13 @@ func main() {
 				continue
 			}
 
-			var buffer bytes.Buffer
+			verdicts := make([]bool, 0)
+			var metadata bytes.Buffer
 			for s := range response {
-				buffer.WriteString(s.Description)
-				buffer.WriteString("\n")
+				verdicts = append(verdicts, s.Status == "FOUND")
+				metadata.WriteString(s.Description)
+				metadata.WriteString(";")
 			}
-			metadata := buffer.String()
 
 			var a struct {
 				Verdicts []bool `json:"verdicts"`
@@ -164,9 +163,9 @@ func main() {
 				Metadata string `json:"metadata"`
 			}
 
-			a.Verdicts = []bool{true}
+			a.Verdicts = verdicts
 			a.Bid = 10
-			a.Metadata = metadata
+			a.Metadata = metadata.String()
 
 			j, err := json.Marshal(a)
 			if err != nil {

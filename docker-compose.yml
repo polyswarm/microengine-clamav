@@ -12,6 +12,7 @@ services:
             - POLYSWARM_HOST=polyswarm:31337
     polyswarm:
         image: "polyswarm/polyswarm:latest"
+        command: --network dev
         depends_on:
             - ipfs
         environment:
@@ -21,6 +22,8 @@ services:
         volumes:
             - "./priv_testnet:/ethereum"
             - "./priv_testnet/geth.ipc:/ethereum/geth.ipc"
+#            - "~/.ethereum/rinkeby:/ethereum"
+#            - "~/.ethereum/rinkeby/geth.ipc:/ethereum/geth.ipc"
 #    geth:
 #        image: "ethereum/client-go:alpine"
 #        ports:
