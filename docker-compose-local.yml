@@ -13,22 +13,24 @@ services:
         image: "polyswarm/polyswarm"
         depends_on:
             - ipfs
-            - geth
         entrypoint:
             - polyswarm
             - --network
             - rinkeby 
         environment:
             - IPFS_HOST=ipfs:5001
-        volumes_from:
-            - geth
-    geth:
-        image: "ethereum/client-go:alpine"
         ports:
-            - "30303:30303"
+            - "31337:31337"
         volumes:
-            - "ethereum:/root/.ethereum"
-        command: ["--rinkeby", "--fast", "--rpc", "--rpcapi", "eth,web3,personal,net"]
+#            - "./priv_testnet:/ethereum"
+            - "~/.ethereum:/root/.ethereum"
+#    geth:
+#        image: "ethereum/client-go:alpine"
+#        ports:
+#            - "30303:30303"
+#        volumes:
+#            - "ethereum:/root/.ethereum"
+#        command: ["--rinkeby", "--fast", "--rpc", "--rpcapi", "eth,web3,personal,net"]
     clamav:
         image: "polyswarm/clamav"
         mem_limit: 1073741824

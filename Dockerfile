@@ -13,4 +13,8 @@ ADD . $GOPATH/src/clamav-microengine/
 #    go install
 ADD clamav-microengine $GOPATH/bin/clamav-microengine
 
+RUN useradd -ms /bin/bash microengine
+WORKDIR /home/microengine
+USER microengine
+
 ENTRYPOINT $GOPATH/bin/clamav-microengine

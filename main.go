@@ -13,18 +13,21 @@ import (
 	"time"
 
 	"github.com/dutchcoders/go-clamd"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/websocket"
 	"github.com/polyswarm/polyswarm/bounty"
 	uuid "github.com/satori/go.uuid"
 )
 
+const TIMEOUT = 3000 * time.Second
 const MAX_DATA_SIZE = 50 * 1024 * 1024
+const POSTER_ADDRESS = "0x6B68D0bf6b983C3662D503eD2D44E0DF4a9BB874"
 
 func connectToClamd(host string) (*clamd.Clamd, error) {
 	u := url.URL{Scheme: "tcp", Host: host}
 	ret := clamd.NewClamd(u.String())
 
-	timeout := time.After(60 * time.Second)
+	timeout := time.After(TIMEOUT)
 	tick := time.Tick(time.Second)
 
 	for {
@@ -42,7 +45,7 @@ func connectToClamd(host string) (*clamd.Clamd, error) {
 func connectToPolyswarm(host string) (*websocket.Conn, error) {
 	u := url.URL{Scheme: "ws", Host: host, Path: "/events"}
 
-	timeout := time.After(60 * time.Second)
+	timeout := time.After(TIMEOUT)
 	tick := time.Tick(time.Second)
 
 	for {
@@ -69,7 +72,7 @@ func retrieveFileFromIpfs(host, resource string) (io.ReadCloser, error) {
 	var stat bounty.ArtifactStats
 	json.NewDecoder(statResp.Body).Decode(&stat)
 
-	if stat.DataSize > MAX_DATA_SIZE || stat.NumLinks > 0 {
+	if stat.DataSize == 0 || stat.DataSize > MAX_DATA_SIZE {
 		return nil, errors.New("invalid ipfs artifact")
 	}
 
@@ -110,6 +113,19 @@ func main() {
 			body, ok := event.Body.(map[string]interface{})
 			if !ok {
 				log.Println("invalid bounty object")
+				continue
+			}
+
+			log.Println("got bounty:", body)
+
+			author, ok := body["Author"].(string)
+			if !ok {
+				log.Println("invalid author address")
+				continue
+			}
+
+			if common.HexToAddress(author) != common.HexToAddress(POSTER_ADDRESS) {
+				log.Println("unrecognized poster:", author)
 				continue
 			}
 
