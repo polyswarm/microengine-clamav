@@ -62,8 +62,11 @@ func connectToPolyswarm(host string) (*websocket.Conn, error) {
 }
 
 func retrieveFileFromIpfs(host, resource string) (io.ReadCloser, error) {
-	artifactUrl := url.URL{Scheme: "http", Host: host, Path: path.Join("artifacts", resource)}
-	statResp, err := http.Get(artifactUrl.String() + "/stat")
+	client := http.Client{
+		Timeout: time.Duration(10 * time.Second),
+	}
+	artifactURL := url.URL{Scheme: "http", Host: host, Path: path.Join("artifacts", resource)}
+	statResp, err := client.Get(artifactURL.String() + "/stat")
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +79,7 @@ func retrieveFileFromIpfs(host, resource string) (io.ReadCloser, error) {
 		return nil, errors.New("invalid ipfs artifact")
 	}
 
-	resp, err := http.Get(artifactUrl.String())
+	resp, err := client.Get(artifactURL.String())
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +150,8 @@ func main() {
 				continue
 			}
 
+			log.Println("retrieving artifact:", uri)
+
 			r, err := retrieveFileFromIpfs(polyswarmHost, uri)
 			if err != nil {
 				log.Println("error retrieving artifact:", err)
@@ -154,11 +159,15 @@ func main() {
 			}
 			defer r.Close()
 
+			log.Println("got artifact, scanning:", uri)
+
 			response, err := clamd.ScanStream(r, make(chan bool))
 			if err != nil {
 				log.Println("error scanning artifact:", err)
 				continue
 			}
+
+			log.Println("scanned artifact:", uri)
 
 			verdicts := make([]bool, 0)
 			var metadata bytes.Buffer
@@ -184,8 +193,13 @@ func main() {
 				continue
 			}
 
-			assertionUrl := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("bounties", uuid.String(), "assertions")}
-			http.Post(assertionUrl.String(), "application/json", bytes.NewBuffer(j))
+			assertionURL := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("bounties", uuid.String(), "assertions")}
+			client := http.Client{
+				Timeout: time.Duration(10 * time.Second),
+			}
+			client.Post(assertionURL.String(), "application/json", bytes.NewBuffer(j))
+
+			log.Println("posted assertion")
 		}
 
 		log.Println("recv:", event)
