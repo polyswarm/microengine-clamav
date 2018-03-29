@@ -18,12 +18,17 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+type Success struct {
+	Status string      `json:"status"`
+	Result interface{} `json:"result"`
+}
+
 type ArtifactStats struct {
-	Hash           string `json:"hash"`
-	BlockSize      int    `json:"block_size"`
-	CumulativeSize int    `json:"cumulative_size"`
-	DataSize       int    `json:"data_size"`
-	NumLinks       int    `json:"num_links"`
+	Hash           string
+	BlockSize      int
+	CumulativeSize int
+	DataSize       int
+	NumLinks       int
 }
 
 type Event struct {
@@ -73,8 +78,44 @@ func connectToPolyswarm(host string) (*websocket.Conn, error) {
 	}
 }
 
+func retrieveFileFromIpfs(host, resource string, id int) (io.ReadCloser, error) {
+	client := http.Client{
+		Timeout: time.Duration(10 * time.Second),
+	}
+	artifactURL := url.URL{Scheme: "http", Host: host, Path: path.Join("artifacts", resource, strconv.Itoa(id))}
+	statResp, err := client.Get(artifactURL.String() + "/stat")
+	if err != nil {
+		return nil, err
+	}
+	defer statResp.Body.Close()
+
+	var success Success
+	json.NewDecoder(statResp.Body).Decode(&success)
+
+	stats, ok := success.Result.(map[string]interface{})
+	if !ok {
+		return nil, errors.New("invalid ipfs artifact stats")
+	}
+
+	dataSize, ok := stats["DataSize"].(float64)
+	if !ok {
+		return nil, errors.New("invalid ipfs artifact stats")
+	}
+
+	if uint(dataSize) == 0 || uint(dataSize) > MAX_DATA_SIZE {
+		return nil, errors.New("invalid ipfs artifact")
+	}
+
+	resp, err := client.Get(artifactURL.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Body, nil
+}
+
 func scanBounty(polyswarmHost string, clamd *clamd.Clamd, uri string) ([]bool, string) {
-	verdicts := make([]bool, 256)
+	verdicts := make([]bool, 0, 256)
 	var metadata bytes.Buffer
 
 	log.Println("retrieving artifacts:", uri)
@@ -82,7 +123,7 @@ func scanBounty(polyswarmHost string, clamd *clamd.Clamd, uri string) ([]bool, s
 		r, err := retrieveFileFromIpfs(polyswarmHost, uri, i)
 		if err != nil {
 			log.Println("error retrieving artifact", i, ":", err)
-			continue
+			break
 		}
 		defer r.Close()
 
@@ -98,7 +139,7 @@ func scanBounty(polyswarmHost string, clamd *clamd.Clamd, uri string) ([]bool, s
 
 		verdict := false
 		for s := range response {
-			verdict |= s.Status == "FOUND"
+			verdict = verdict || s.Status == "FOUND"
 
 			verdicts = append(verdicts, s.Status == "FOUND")
 			metadata.WriteString(s.Description)
@@ -109,34 +150,16 @@ func scanBounty(polyswarmHost string, clamd *clamd.Clamd, uri string) ([]bool, s
 	return verdicts, metadata.String()
 }
 
-func retrieveFileFromIpfs(host, resource string, id int) (io.ReadCloser, error) {
-	client := http.Client{
-		Timeout: time.Duration(10 * time.Second),
+func makeBoolMask(len int) []bool {
+	ret := make([]bool, len)
+	for i := 0; i < len; i++ {
+		ret[i] = true
 	}
-	artifactURL := url.URL{Scheme: "http", Host: host, Path: path.Join("artifacts", resource, strconv.Itoa(id))}
-	statResp, err := client.Get(artifactURL.String() + "/stat")
-	if err != nil {
-		return nil, err
-	}
-	defer statResp.Body.Close()
-
-	var stat ArtifactStats
-	json.NewDecoder(statResp.Body).Decode(&stat)
-
-	if stat.DataSize == 0 || stat.DataSize > MAX_DATA_SIZE {
-		return nil, errors.New("invalid ipfs artifact")
-	}
-
-	resp, err := client.Get(artifactURL.String())
-	if err != nil {
-		return nil, err
-	}
-
-	return resp.Body, nil
+	return ret
 }
 
 func main() {
-	time.Sleep(15 * time.Second)
+	//time.Sleep(15 * time.Second)
 	log.Println("Starting microengine")
 
 	clamd, err := connectToClamd(os.Getenv("CLAMD_HOST"))
@@ -169,12 +192,6 @@ func main() {
 
 			log.Println("got bounty:", data)
 
-			author, ok := data["author"].(string)
-			if !ok {
-				log.Println("invalid author address")
-				continue
-			}
-
 			guid, ok := data["guid"].(string)
 			if !ok {
 				log.Println("invalid guid")
@@ -189,7 +206,7 @@ func main() {
 
 			uri, ok := data["uri"].(string)
 			if !ok {
-				log.Println("invalid uri:", err)
+				log.Println("invalid uri")
 				continue
 			}
 
@@ -197,13 +214,15 @@ func main() {
 
 			var a struct {
 				Verdicts []bool `json:"verdicts"`
-				Bid      int    `json:"bid"`
+				Mask     []bool `json:"mask"`
+				Bid      string `json:"bid"`
 				Metadata string `json:"metadata"`
 			}
 
 			a.Verdicts = verdicts
-			a.Bid = BID_AMOUNT
-			a.Metadata = metadata.String()
+			a.Mask = makeBoolMask(len(verdicts))
+			a.Bid = strconv.Itoa(BID_AMOUNT)
+			a.Metadata = metadata
 
 			j, err := json.Marshal(a)
 			if err != nil {
@@ -218,6 +237,24 @@ func main() {
 			client.Post(assertionURL.String(), "application/json", bytes.NewBuffer(j))
 
 			log.Println("posted assertion")
+		} else if event.Type == "block" {
+			data, ok := event.Data.(map[string]interface{})
+			if !ok {
+				log.Println("invalid block event")
+				continue
+			}
+
+			log.Println("got block:", data)
+
+			number, ok := data["number"].(float64)
+			if !ok {
+				log.Println("invalid block event")
+				continue
+			}
+
+			if int(number)%10 == 0 {
+				log.Println("scanning pending bounties")
+			}
 		}
 
 		log.Println("recv:", event)
