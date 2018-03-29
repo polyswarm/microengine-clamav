@@ -7,8 +7,7 @@ services:
             - clamav
         environment:
             - CLAMD_HOST=clamav:3310
-            - IPFS_HOST=ipfs:5001
-            - POLYSWARM_HOST=polyswarm:31337
+            - POLYSWARM_HOST=polyswarm:8080
     polyswarm:
         image: "polyswarm/polyswarm"
         depends_on:
@@ -22,15 +21,7 @@ services:
         ports:
             - "31337:31337"
         volumes:
-#            - "./priv_testnet:/ethereum"
             - "~/.ethereum:/root/.ethereum"
-#    geth:
-#        image: "ethereum/client-go:alpine"
-#        ports:
-#            - "30303:30303"
-#        volumes:
-#            - "ethereum:/root/.ethereum"
-#        command: ["--rinkeby", "--fast", "--rpc", "--rpcapi", "eth,web3,personal,net"]
     clamav:
         image: "polyswarm/clamav"
         mem_limit: 1073741824
