@@ -234,8 +234,8 @@ func main() {
 			client := http.Client{
 				Timeout: time.Duration(10 * time.Second),
 			}
-			client.Post(assertionURL.String(), "application/json", bytes.NewBuffer(j))
 
+			client.Post(assertionURL.String(), "application/json", bytes.NewBuffer(j))
 			log.Println("posted assertion")
 		} else if event.Type == "block" {
 			data, ok := event.Data.(map[string]interface{})
@@ -254,6 +254,75 @@ func main() {
 
 			if int(number)%10 == 0 {
 				log.Println("scanning pending bounties")
+
+				pendingURL := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("bounties", "pending")}
+				client := http.Client{
+					Timeout: time.Duration(10 * time.Second),
+				}
+
+				pendingResp, err := client.Get(pendingURL.String())
+				if err != nil {
+					log.Println("error fetching pending bounties:", err)
+					continue
+				}
+
+				var success Success
+				json.NewDecoder(pendingResp.Body).Decode(&success)
+
+				pending, ok := success.Result.([]interface{})
+				if !ok {
+					log.Println("invalid pending bounties")
+					continue
+				}
+
+				for i := 0; i < len(pending); i++ {
+					bounty, ok := pending[i].(map[string]interface{})
+					if !ok {
+						log.Println("invalid pending bounties")
+						continue
+					}
+
+					guid, ok := bounty["guid"].(string)
+					if !ok {
+						log.Println("invalid pending bounties")
+						continue
+					}
+
+					uuid, err := uuid.FromString(guid)
+					if err != nil {
+						log.Println("invalid uuid:", err)
+						continue
+					}
+
+					uri, ok := bounty["uri"].(string)
+					if !ok {
+						log.Println("invalid pending bounties")
+						continue
+					}
+
+					verdicts, _ := scanBounty(polyswarmHost, clamd, uri)
+
+					var v struct {
+						Verdicts []bool `json:"verdicts"`
+					}
+
+					v.Verdicts = verdicts
+
+					j, err := json.Marshal(v)
+					if err != nil {
+						log.Println("error marshaling settlement:", err)
+						continue
+					}
+
+					settleURL := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("bounties", uuid.String(), "settle")}
+					client := http.Client{
+						Timeout: time.Duration(10 * time.Second),
+					}
+
+					client.Post(settleURL.String(), "application/json", bytes.NewBuffer(j))
+					log.Println("posted settlement")
+
+				}
 			}
 		}
 
