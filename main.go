@@ -39,6 +39,63 @@ type Event struct {
 const TIMEOUT = 3000 * time.Second
 const MAX_DATA_SIZE = 50 * 1024 * 1024
 const BID_AMOUNT = 62500000000000000
+const PASSWORD = "password"
+
+func login(polyswarmHost string) error {
+	accountsURL := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("accounts")}
+	client := http.Client{
+		Timeout: time.Duration(10 * time.Second),
+	}
+
+	accountsResp, err := client.Get(accountsURL.String())
+	if err != nil {
+		return err
+	}
+
+	var success Success
+	json.NewDecoder(accountsResp.Body).Decode(&success)
+
+	accounts, ok := success.Result.([]interface{})
+	if !ok {
+		return errors.New("invalid accounts")
+	}
+
+	var p struct {
+		Password string `json:"password"`
+	}
+	p.Password = PASSWORD
+
+	j, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+
+	var account string
+	if len(accounts) == 0 {
+		newAccountResp, err := client.Post(accountsURL.String(), "application/json", bytes.NewBuffer(j))
+		if err != nil {
+			return err
+		}
+
+		json.NewDecoder(newAccountResp.Body).Decode(&success)
+
+		account, ok = success.Result.(string)
+		if !ok {
+			return errors.New("invalid account")
+		}
+	} else {
+		account, ok = accounts[0].(string)
+		if !ok {
+			return errors.New("invalid account")
+		}
+	}
+
+	unlockURL := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("accounts", account, "unlock")}
+	client.Post(unlockURL.String(), "application/json", bytes.NewBuffer(j))
+
+	log.Println("using account:", account)
+	return nil
+}
 
 func connectToClamd(host string) (*clamd.Clamd, error) {
 	u := url.URL{Scheme: "tcp", Host: host}
@@ -159,7 +216,6 @@ func makeBoolMask(len int) []bool {
 }
 
 func main() {
-	//time.Sleep(15 * time.Second)
 	log.Println("Starting microengine")
 
 	clamd, err := connectToClamd(os.Getenv("CLAMD_HOST"))
@@ -168,6 +224,10 @@ func main() {
 	}
 
 	polyswarmHost := os.Getenv("POLYSWARM_HOST")
+	if err := login(polyswarmHost); err != nil {
+		log.Fatalln(err)
+	}
+
 	conn, err := connectToPolyswarm(polyswarmHost)
 	if err != nil {
 		log.Fatalln(err)
