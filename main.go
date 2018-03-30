@@ -216,6 +216,7 @@ func makeBoolMask(len int) []bool {
 }
 
 func main() {
+	time.Sleep(30 * time.Second)
 	log.Println("Starting microengine")
 
 	clamd, err := connectToClamd(os.Getenv("CLAMD_HOST"))
@@ -304,15 +305,13 @@ func main() {
 				continue
 			}
 
-			log.Println("got block:", data)
-
 			number, ok := data["number"].(float64)
 			if !ok {
 				log.Println("invalid block event")
 				continue
 			}
 
-			if int(number)%10 == 0 {
+			if int(number)%100 == 0 {
 				log.Println("scanning pending bounties")
 
 				pendingURL := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("bounties", "pending")}

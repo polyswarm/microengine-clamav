@@ -26,7 +26,7 @@ services:
             - "30303:30303"
         volumes:
             - "ethereum:/root/.ethereum"
-        command: ["--fast", "--rpc", "--rpcapi", "eth,web3,personal,net"]
+        command: ["--fast", "--rpc", "--rpcaddr", "0.0.0.0", "--rpcvhosts", "geth", "--rpcapi", "eth,web3,personal,net"]
     clamav:
         image: "polyswarm/clamav"
         mem_limit: 1073741824
