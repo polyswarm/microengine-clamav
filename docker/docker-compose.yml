@@ -7,7 +7,7 @@ services:
             - clamav
         environment:
             - CLAMD_HOST=clamav:3310
-            - POLYSWARM_HOST=polyswarm:8080
+            - POLYSWARM_HOST=polyswarm:31337
     polyswarm:
         image: "polyswarm/polyswarmd"
         depends_on:
