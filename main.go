@@ -154,7 +154,7 @@ func retrieveFileFromIpfs(host, resource string, id int) (io.ReadCloser, error) 
 		return nil, errors.New("invalid ipfs artifact stats")
 	}
 
-	dataSize, ok := stats["DataSize"].(float64)
+	dataSize, ok := stats["data_size"].(float64)
 	if !ok {
 		return nil, errors.New("invalid ipfs artifact stats")
 	}
