@@ -26,7 +26,7 @@ services:
         image: "polyswarm/clamav"
         mem_limit: 1073741824
     ipfs:
-        image: "polyswarm/ipfs"
+        image: "ipfs/go-ipfs"
         environment:
             - IPFS_BIND_IP=0.0.0.0
             - IPFS_BOOTSTRAP_RM_ALL=true
