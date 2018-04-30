@@ -1,5 +1,5 @@
 FROM golang:latest
-LABEL maintainer="Maxwell Koo <mjkoo90@gmail.com>"
+LABEL maintainer="PolySwarm Developers <info@polyswarm.io>"
 
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:$PATH

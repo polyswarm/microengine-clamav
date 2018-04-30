@@ -15,6 +15,7 @@ import (
 
 	"github.com/dutchcoders/go-clamd"
 	"github.com/gorilla/websocket"
+	"github.com/mr-tron/base58/base58"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -136,6 +137,14 @@ func connectToPolyswarm(host string) (*websocket.Conn, error) {
 }
 
 func retrieveFileFromIpfs(host, resource string, id int) (io.ReadCloser, error) {
+	if len(resource) >= 100 {
+		return nil, errors.New("ipfs resource too long")
+	}
+
+	if _, err := base58.Decode(resource); err != nil {
+		return nil, err
+	}
+
 	client := http.Client{
 		Timeout: time.Duration(10 * time.Second),
 	}
@@ -153,6 +162,8 @@ func retrieveFileFromIpfs(host, resource string, id int) (io.ReadCloser, error) 
 	if !ok {
 		return nil, errors.New("invalid ipfs artifact stats")
 	}
+
+	log.Println(stats)
 
 	dataSize, ok := stats["data_size"].(float64)
 	if !ok {
@@ -216,6 +227,14 @@ func makeBoolMask(len int) []bool {
 }
 
 func main() {
+	rc, err := retrieveFileFromIpfs("localhost:31337", "QmPZ9gcCEpqKTo6aq61g2nXGUhM4iCL3ewB6LDXZCtioEB", 0)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	io.Copy(os.Stdout, rc)
+	log.Fatalln("foo")
+
 	time.Sleep(30 * time.Second)
 	log.Println("Starting microengine")
 

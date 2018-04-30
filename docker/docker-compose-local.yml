@@ -9,7 +9,7 @@ services:
             - CLAMD_HOST=clamav:3310
             - POLYSWARM_HOST=polyswarm:31337
     polyswarm:
-        image: "polyswarm/polyswarm"
+        image: "polyswarm/polyswarmd"
         depends_on:
             - ipfs
         entrypoint:
