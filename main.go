@@ -163,8 +163,6 @@ func retrieveFileFromIpfs(host, resource string, id int) (io.ReadCloser, error) 
 		return nil, errors.New("invalid ipfs artifact stats")
 	}
 
-	log.Println(stats)
-
 	dataSize, ok := stats["data_size"].(float64)
 	if !ok {
 		return nil, errors.New("invalid ipfs artifact stats")
@@ -227,14 +225,6 @@ func makeBoolMask(len int) []bool {
 }
 
 func main() {
-	rc, err := retrieveFileFromIpfs("localhost:31337", "QmPZ9gcCEpqKTo6aq61g2nXGUhM4iCL3ewB6LDXZCtioEB", 0)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	io.Copy(os.Stdout, rc)
-	log.Fatalln("foo")
-
 	time.Sleep(30 * time.Second)
 	log.Println("Starting microengine")
 
