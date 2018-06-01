@@ -1,5 +1,7 @@
-FROM golang:latest
+FROM golang:1.10-alpine as builder
 LABEL maintainer="PolySwarm Developers <info@polyswarm.io>"
+
+RUN apk add --no-cache git
 
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:$PATH
@@ -7,13 +9,16 @@ ENV PATH $GOPATH/bin:$PATH
 RUN mkdir -p $GOPATH/src/clamav-microengine/
 ADD . $GOPATH/src/clamav-microengine/
 
-#RUN set -x && \
-#    cd $GOPATH/src/clamav-microengine && \
-#    go get . && \
-#    go install
-ADD clamav-microengine $GOPATH/bin/clamav-microengine
+RUN set -x && \
+    cd $GOPATH/src/clamav-microengine && \
+    go get . && \
+    go install
 
-RUN useradd -ms /bin/bash microengine
+FROM alpine:latest
+
+COPY --from=builder /go/bin/clamav-microengine $GOPATH/bin/clamav-microengine
+
+RUN adduser -S microengine
 WORKDIR /home/microengine
 USER microengine
 
