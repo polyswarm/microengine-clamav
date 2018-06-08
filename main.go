@@ -69,6 +69,14 @@ type SignTxResponse struct {
 	Data    string `json:"data"`
 }
 
+// Assertions that haven't yet been revealed
+type SecretAssertion struct {
+	Guid     string
+	Verdicts []bool
+	Metadata string
+	Nonce    string
+}
+
 const TIMEOUT = 3000 * time.Second
 const MAX_DATA_SIZE = 50 * 1024 * 1024
 const BID_AMOUNT = 62500000000000000
@@ -217,12 +225,12 @@ func retrieveFileFromIpfs(host, resource string, id int) (io.ReadCloser, error) 
 		return nil, errors.New("invalid ipfs artifact")
 	}
 
-	resp, err := client.Get(artifactURL.String())
+	response, err := client.Get(artifactURL.String())
 	if err != nil {
 		return nil, err
 	}
 
-	return resp.Body, nil
+	return response.Body, nil
 }
 
 func scanBounty(polyswarmHost string, clamd *clamd.Clamd, uri string) ([]bool, string) {
@@ -285,7 +293,7 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	polyswarmHost := os.Getenv("POLYSWARM_HOST")
+	polyswarmHost := os.Getenv("POLYSWARMD_HOST")
 	eventConn, txConn, err := connectToPolyswarm(polyswarmHost)
 	if err != nil {
 		log.Fatalln(err)
@@ -294,6 +302,8 @@ func main() {
 	defer txConn.Close()
 
 	go listenForTx(txConn, key)
+
+	revealDeadlines := make(map[uint64]SecretAssertion)
 
 	for {
 		_, message, err := eventConn.ReadMessage()
@@ -331,19 +341,29 @@ func main() {
 				continue
 			}
 
+			expirationStr, ok := data["expiration"].(string)
+			if ok {
+				log.Println("invalid expiration")
+				continue
+			}
+
+			expiration, err := strconv.ParseUint(expirationStr, 0, 64)
+			if err != nil {
+				log.Println("invalid expiration")
+				continue
+			}
+
 			verdicts, metadata := scanBounty(polyswarmHost, clamd, uri)
 
 			var a struct {
 				Verdicts []bool `json:"verdicts"`
 				Mask     []bool `json:"mask"`
 				Bid      string `json:"bid"`
-				Metadata string `json:"metadata"`
 			}
 
 			a.Verdicts = verdicts
 			a.Mask = makeBoolMask(len(verdicts))
 			a.Bid = strconv.Itoa(BID_AMOUNT)
-			a.Metadata = metadata
 
 			j, err := json.Marshal(a)
 			if err != nil {
@@ -356,8 +376,30 @@ func main() {
 				Timeout: time.Duration(10 * time.Second),
 			}
 
-			client.Post(assertionURL.String(), "application/json", bytes.NewBuffer(j))
-			log.Println("posted assertion")
+			response, err := client.Post(assertionURL.String(), "application/json", bytes.NewBuffer(j))
+			if err != nil {
+				log.Println("error posting assertion:", err)
+				continue
+			}
+			defer response.Body.Close()
+
+			var success Success
+			json.NewDecoder(response.Body).Decode(&success)
+
+			data, ok = success.Result.(map[string]interface{})
+			if !ok {
+				log.Println("error posting assertion:", err)
+				continue
+			}
+
+			nonce, ok := data["nonce"].(string)
+			if !ok {
+				log.Println("error parsing nonce:", err)
+				continue
+			}
+
+			// Wait a block to be safe
+			revealDeadlines[expiration+1] = SecretAssertion{uuid.String(), verdicts, metadata, nonce}
 		} else if event.Type == "block" {
 			data, ok := event.Data.(map[string]interface{})
 			if !ok {
@@ -371,81 +413,30 @@ func main() {
 				continue
 			}
 
-			if int(number)%25 == 0 {
-				log.Println("scanning pending bounties")
-
-				pendingURL := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("bounties", "pending")}
-				client := http.Client{
-					Timeout: time.Duration(10 * time.Second),
-				}
-
-				pendingResp, err := client.Get(pendingURL.String())
-				if err != nil {
-					log.Println("error fetching pending bounties:", err)
-					continue
-				}
-
-				var success Success
-				json.NewDecoder(pendingResp.Body).Decode(&success)
-
-				pending, ok := success.Result.([]interface{})
-				if !ok {
-					log.Println("invalid pending bounties")
-					continue
-				}
-
-				for i := 0; i < len(pending); i++ {
-					bounty, ok := pending[i].(map[string]interface{})
-					if !ok {
-						log.Println("invalid pending bounties")
-						continue
-					}
-
-					guid, ok := bounty["guid"].(string)
-					if !ok {
-						log.Println("invalid pending bounties")
-						continue
-					}
-
-					uuid, err := uuid.FromString(guid)
-					if err != nil {
-						log.Println("invalid uuid:", err)
-						continue
-					}
-
-					uri, ok := bounty["uri"].(string)
-					if !ok {
-						log.Println("invalid pending bounties")
-						continue
-					}
-
-					verdicts, _ := scanBounty(polyswarmHost, clamd, uri)
-
-					var v struct {
-						Verdicts   []bool `json:"verdicts"`
-						ValidBloom bool   `json:"valid_bloom"`
-					}
-
-					v.Verdicts = verdicts
-					// TODO: Verify this
-					v.ValidBloom = true
-
-					j, err := json.Marshal(v)
-					if err != nil {
-						log.Println("error marshaling vote:", err)
-						continue
-					}
-
-					voteURL := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("bounties", uuid.String(), "vote"), RawQuery: "account=" + key.Address.Hex()}
-					client := http.Client{
-						Timeout: time.Duration(10 * time.Second),
-					}
-
-					client.Post(voteURL.String(), "application/json", bytes.NewBuffer(j))
-					log.Println("posted vote")
-
-				}
+			assertion, ok := revealDeadlines[uint64(number)]
+			if !ok {
+				continue
 			}
+
+			var r struct {
+				Nonce    string `json:"nonce"`
+				Verdicts []bool `json:"verdicts"`
+				Metadata []bool `json:"verdicts"`
+			}
+
+			j, err := json.Marshal(r)
+			if err != nil {
+				log.Println("error marshaling reveal:", err)
+				continue
+			}
+
+			assertionURL := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("bounties", assertion.Guid, "assertions", "reveal"),
+				RawQuery: "account=" + key.Address.Hex()}
+			client := http.Client{
+				Timeout: time.Duration(10 * time.Second),
+			}
+
+			client.Post(assertionURL.String(), "application/json", bytes.NewBuffer(j))
 		}
 
 		log.Println("recv:", event)
