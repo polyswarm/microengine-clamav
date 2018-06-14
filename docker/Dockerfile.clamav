@@ -41,5 +41,6 @@ EXPOSE 3310
 
 # av daemon bootstrapping
 ADD bootstrap.sh /
+RUN chmod +x /bootstrap.sh
 USER clamav
 CMD ["/bootstrap.sh"]

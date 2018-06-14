@@ -341,14 +341,9 @@ func main() {
 				continue
 			}
 
-			expirationStr, ok := data["expiration"].(string)
+			expiration, ok := data["expiration"].(float64)
+			log.Println(expiration)
 			if ok {
-				log.Println("invalid expiration")
-				continue
-			}
-
-			expiration, err := strconv.ParseUint(expirationStr, 0, 64)
-			if err != nil {
 				log.Println("invalid expiration")
 				continue
 			}
@@ -388,7 +383,7 @@ func main() {
 
 			data, ok = success.Result.(map[string]interface{})
 			if !ok {
-				log.Println("error posting assertion:", err)
+				log.Println("invalid assertion")
 				continue
 			}
 
@@ -399,7 +394,7 @@ func main() {
 			}
 
 			// Wait a block to be safe
-			revealDeadlines[expiration+1] = SecretAssertion{uuid.String(), verdicts, metadata, nonce}
+			revealDeadlines[uint64(expiration)+1] = SecretAssertion{uuid.String(), verdicts, metadata, nonce}
 		} else if event.Type == "block" {
 			data, ok := event.Data.(map[string]interface{})
 			if !ok {
