@@ -71,15 +71,18 @@ type SignTxResponse struct {
 
 // Assertions that haven't yet been revealed
 type SecretAssertion struct {
-	Guid     string
-	Verdicts []bool
-	Metadata string
-	Nonce    string
+	Expiration uint64
+	Guid       string
+	Index      string
+	Verdicts   []bool
+	Metadata   string
+	Nonce      string
 }
 
 const TIMEOUT = 3000 * time.Second
 const MAX_DATA_SIZE = 50 * 1024 * 1024
 const BID_AMOUNT = 62500000000000000
+const ARBITER_VOTING_WINDOW = 25
 const KEYFILE = "keyfile"
 const PASSWORD = "password"
 
@@ -303,7 +306,7 @@ func main() {
 
 	go listenForTx(txConn, key)
 
-	revealDeadlines := make(map[uint64]SecretAssertion)
+	secretAssertions := make([]SecretAssertion, 0)
 
 	for {
 		_, message, err := eventConn.ReadMessage()
@@ -341,10 +344,15 @@ func main() {
 				continue
 			}
 
-			expiration, ok := data["expiration"].(float64)
-			log.Println(expiration)
-			if ok {
+			expirationStr, ok := data["expiration"].(string)
+			if !ok {
 				log.Println("invalid expiration")
+				continue
+			}
+
+			expiration, err := strconv.ParseUint(expirationStr, 0, 64)
+			if err != nil {
+				log.Println("invalid expiration:", err)
 				continue
 			}
 
@@ -393,8 +401,15 @@ func main() {
 				continue
 			}
 
+			index, ok := data["index"].(float64)
+			if !ok {
+				log.Println("error parsing index:", err)
+				continue
+			}
+
 			// Wait a block to be safe
-			revealDeadlines[uint64(expiration)+1] = SecretAssertion{uuid.String(), verdicts, metadata, nonce}
+			secretAssertions = append(secretAssertions, SecretAssertion{expiration, uuid.String(), strconv.FormatUint(uint64(index), 10), verdicts, metadata, nonce})
+			log.Println("scheduled reveal:", secretAssertions[len(secretAssertions)-1])
 		} else if event.Type == "block" {
 			data, ok := event.Data.(map[string]interface{})
 			if !ok {
@@ -408,32 +423,59 @@ func main() {
 				continue
 			}
 
-			assertion, ok := revealDeadlines[uint64(number)]
-			if !ok {
-				continue
+			if uint64(number)%20 == 0 {
+				log.Println("got block:", number)
 			}
 
-			var r struct {
-				Nonce    string `json:"nonce"`
-				Verdicts []bool `json:"verdicts"`
-				Metadata []bool `json:"verdicts"`
+			newSecretAssertions := make([]SecretAssertion, 0)
+			for _, assertion := range secretAssertions {
+				// Wait for the arbiter voting window to end plus a block
+				if assertion.Expiration+ARBITER_VOTING_WINDOW+1 > uint64(number) {
+					newSecretAssertions = append(newSecretAssertions, assertion)
+					continue
+				}
+
+				log.Println("revealing:", assertion)
+
+				var r struct {
+					Nonce    string `json:"nonce"`
+					Verdicts []bool `json:"verdicts"`
+					Metadata string `json:"metadata"`
+				}
+
+				r.Nonce = assertion.Nonce
+				r.Verdicts = assertion.Verdicts
+				r.Metadata = assertion.Metadata
+
+				j, err := json.Marshal(r)
+				if err != nil {
+					log.Println("error marshaling reveal:", err)
+					continue
+				}
+
+				assertionURL := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("bounties", assertion.Guid, "assertions", assertion.Index, "reveal"),
+					RawQuery: "account=" + key.Address.Hex()}
+				client := http.Client{
+					Timeout: time.Duration(10 * time.Second),
+				}
+
+				response, err := client.Post(assertionURL.String(), "application/json", bytes.NewBuffer(j))
+				if err != nil {
+					log.Println("error revealing assertion:", err)
+					continue
+				}
+				defer response.Body.Close()
+
+				b, err := ioutil.ReadAll(response.Body)
+				if err != nil {
+					log.Println("error revealing assertion:", err)
+					continue
+				}
+
+				log.Println("revealed:", string(b))
 			}
 
-			j, err := json.Marshal(r)
-			if err != nil {
-				log.Println("error marshaling reveal:", err)
-				continue
-			}
-
-			assertionURL := url.URL{Scheme: "http", Host: polyswarmHost, Path: path.Join("bounties", assertion.Guid, "assertions", "reveal"),
-				RawQuery: "account=" + key.Address.Hex()}
-			client := http.Client{
-				Timeout: time.Duration(10 * time.Second),
-			}
-
-			client.Post(assertionURL.String(), "application/json", bytes.NewBuffer(j))
+			secretAssertions = newSecretAssertions
 		}
-
-		log.Println("recv:", event)
 	}
 }
