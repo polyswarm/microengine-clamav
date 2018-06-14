@@ -18,10 +18,4 @@ FROM alpine:latest
 
 COPY --from=builder /go/bin/clamav-microengine $GOPATH/bin/clamav-microengine
 
-RUN adduser -S microengine
-ADD keyfile /home/microengine
-WORKDIR /home/microengine
-RUN chown microengine keyfile
-USER microengine
-
 ENTRYPOINT $GOPATH/bin/clamav-microengine
