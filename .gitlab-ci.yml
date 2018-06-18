@@ -24,7 +24,7 @@ build-master:
     script:
         #- docker build -t $CI_REGISTRY_IMAGE/clamav:latest -f docker/Dockerfile.clamav .
         #- docker push $CI_REGISTRY_IMAGE/clamav:latest
-        - docker build -t $CI_REGISTRY_IMAGE/microengine-clamav:latest -f docker/Dockerfile.clamav-microengine .
+        - docker build -t $CI_REGISTRY_IMAGE/microengine-clamav:latest -f docker/Dockerfile.microengine-clamav .
         - docker push $CI_REGISTRY_IMAGE/microengine-clamav:latest 
 
 build-non-master:
@@ -36,5 +36,5 @@ build-non-master:
     script:
         #- docker build -t $CI_REGISTRY_IMAGE/clamav:$CI_COMMIT_REF_NAME -f docker/Dockerfile.clamav .
         #- docker push $CI_REGISTRY_IMAGE/clamav:$CI_COMMIT_REF_NAME        
-        - docker build -t $CI_REGISTRY_IMAGE/microengine-clamav:$CI_COMMIT_REF_NAME -f docker/Dockerfile.clamav-microengine .
+        - docker build -t $CI_REGISTRY_IMAGE/microengine-clamav:$CI_COMMIT_REF_NAME -f docker/Dockerfile.microengine-clamav .
         - docker push $CI_REGISTRY_IMAGE/microengine-clamav:$CI_COMMIT_REF_NAME 

@@ -3,7 +3,7 @@ services:
     microengine:
         security_opt:
             - "seccomp:./set_test.json"
-        image: "polyswarm/clamav-microengine"
+        image: "polyswarm/microengine-clamav"
         depends_on:
             - polyswarmd
             - clamav

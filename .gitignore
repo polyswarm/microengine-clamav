@@ -3,5 +3,5 @@
 data/
 staging
 priv_testnet/
-clamav-microengine
+microengine-clamav
 keyfile
