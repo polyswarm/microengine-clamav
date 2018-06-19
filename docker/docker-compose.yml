@@ -1,7 +1,7 @@
 version: '2'
 services:
     microengine:
-        image: "polyswarm/clamav-microengine"
+        image: "polyswarm/microengine-clamav"
         depends_on:
             - polyswarmd
             - clamav
