@@ -20,12 +20,15 @@ build-master:
         - master
     tags:
         - docker
+    variables:
+        DOCKER_FULL_PATH: index.docker.io/polyswarm/microengine-clamav
+
     stage: build
     script:
         #- docker build -t $CI_REGISTRY_IMAGE/clamav:latest -f docker/Dockerfile.clamav .
         #- docker push $CI_REGISTRY_IMAGE/clamav:latest
-        - docker build -t $CI_REGISTRY_IMAGE/microengine-clamav:latest -f docker/Dockerfile.microengine-clamav .
-        - docker push $CI_REGISTRY_IMAGE/microengine-clamav:latest 
+        -docker login -u "$SWARM_DOCKER_USER" -p "$SWARM_DOCKER_PASSWORD" $DOCKER_SWARM_REGISTRY && docker build -t $DOCKER_FULL_PATH -f docker/Dockerfile.microengine-clamav .
+        -docker login -u "$SWARM_DOCKER_USER" -p "$SWARM_DOCKER_PASSWORD" $DOCKER_SWARM_REGISTRY && docker push $DOCKER_FULL_PATH 
 
 build-non-master:
     except: 
