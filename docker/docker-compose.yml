@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 services:
     microengine:
         image: "polyswarm/microengine-clamav"
@@ -26,8 +26,13 @@ services:
             - "30303:30303"
             - "8545:8545"
     clamav:
-        image: "polyswarm/clamav"
-        mem_limit: 1073741824
+        image: "polyswarm/microengine-clamav"
+        deploy:
+           resources:
+             limits:
+               cpus: '0.50'
+               memory: 50M
+
     ipfs:
         image: "ipfs/go-ipfs"
         environment:
