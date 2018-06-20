@@ -27,8 +27,8 @@ build-master:
     script:
         #- docker build -t $CI_REGISTRY_IMAGE/clamav:latest -f docker/Dockerfile.clamav .
         #- docker push $CI_REGISTRY_IMAGE/clamav:latest
-        -docker login -u "$SWARM_DOCKER_USER" -p "$SWARM_DOCKER_PASSWORD" $DOCKER_SWARM_REGISTRY && docker build -t $DOCKER_FULL_PATH -f docker/Dockerfile.microengine-clamav .
-        -docker login -u "$SWARM_DOCKER_USER" -p "$SWARM_DOCKER_PASSWORD" $DOCKER_SWARM_REGISTRY && docker push $DOCKER_FULL_PATH 
+        - docker login -u "$SWARM_DOCKER_USER" -p "$SWARM_DOCKER_PASSWORD" $DOCKER_SWARM_REGISTRY && docker build -t $DOCKER_FULL_PATH -f docker/Dockerfile.microengine-clamav .
+        - docker login -u "$SWARM_DOCKER_USER" -p "$SWARM_DOCKER_PASSWORD" $DOCKER_SWARM_REGISTRY && docker push $DOCKER_FULL_PATH 
 
 build-non-master:
     except: 
