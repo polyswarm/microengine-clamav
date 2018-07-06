@@ -11,7 +11,7 @@ build-docker:
         - docker
     stage: test
     script: 
-        - docker build -t ${CI_PROJECT_PATH} -f docker/Dockerfile .
+        - docker build -t ${CI_PROJECT_PATH} -f docker/Dockerfile.microengine-clamav .
         
 kick-e2e:
     only: 
