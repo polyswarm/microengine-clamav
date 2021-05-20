@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "microengine-clamav.fullname" . }}-clamd
+  labels:
+    {{- include "microengine-clamav.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.clamd.service.type }}
+  ports:
+    - port: {{ .Values.clamd.service.port }}
+      targetPort: clamd
+      protocol: TCP
+      name: clamd
+  selector:
+    {{- include "microengine-clamav.selectorLabels" . | nindent 4 }}

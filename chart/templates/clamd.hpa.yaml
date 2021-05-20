@@ -1,0 +1,28 @@
+{{- if .Values.clamd.autoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "microengine-clamav.fullname" . }}-clamd
+  labels:
+    {{- include "microengine-clamav.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "microengine-clamav.fullname" . }}-clamd
+  minReplicas: {{ .Values.clamd.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.clamd.autoscaling.maxReplicas }}
+  metrics:
+  {{- if .Values.clamd.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.clamd.autoscaling.targetCPUUtilizationPercentage }}
+  {{- end }}
+  {{- if .Values.clamd.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.clamd.autoscaling.targetMemoryUtilizationPercentage }}
+  {{- end }}
+{{- end }}
