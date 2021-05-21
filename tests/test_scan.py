@@ -41,11 +41,8 @@ def test_scan_malicious(requests_mock, mocker):
     handle_bounty(dataclasses.asdict(bounty))
 
     # Have to dissect the call, since we don't know what the metadata will be, it is version dependent.
-    called_bounty = spy.mock_calls[0][1][0]
     called_assertion = spy.mock_calls[0][1][1]
-    assert called_bounty == bounty
     assert called_assertion.verdict == Verdict.MALICIOUS.value
-    assert called_assertion.bid == to_wei(1)
 
 
 def test_scan_benign(requests_mock, mocker):
@@ -75,8 +72,5 @@ def test_scan_benign(requests_mock, mocker):
     handle_bounty(dataclasses.asdict(bounty))
 
     # Have to dissect the call, since we don't know what the metadata will be, it is version dependent.
-    called_bounty = spy.mock_calls[0][1][0]
     called_assertion = spy.mock_calls[0][1][1]
-    assert called_bounty == bounty
     assert called_assertion.verdict == Verdict.BENIGN.value
-    assert called_assertion.bid == to_wei(1)
