@@ -73,9 +73,12 @@ test:
   coverage: '/TOTAL.*\s+(\d+%)$/'
   script:
     - docker network create microengine-webhooks-py
+    - docker run -d --network microengine-webhooks-py --network-alias clamav $REPO_URL/docker-clamav
     - docker run --network microengine-webhooks-py
         -e PYTHONUNBUFFERED=1
         -e PROCESS_TYPE=test
+        -e CLAMD_HOST=clamav
+        -e CLAMD_PORT=3310
         $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA
 
 ############################
