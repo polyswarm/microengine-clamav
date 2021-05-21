@@ -33,8 +33,6 @@ build-nginx:
   tags:
     - kube-small-new
   script:
-    - e2e dependencies docker/Dockerfile $BASE_IMAGE_NAME
-    # explicitly pull the latest version of the dependant image
     - sed "s#FROM nginx/unit#FROM $REPO_URL/unit#" docker/Dockerfile > docker/Dockerfile.ci
     - docker build
       --build-arg PIP_INDEX_URL
@@ -52,9 +50,7 @@ build-worker:
   tags:
     - kube-small-new
   script:
-    - e2e dependencies docker/Dockerfile $BASE_IMAGE_NAME-$WORKER_SUFFIX
     - sed "s#FROM python#FROM $REPO_URL/python#" docker/worker.Dockerfile > docker/worker.Dockerfile.ci
-    # explicitly pull the latest version of the dependant image
     - docker build
       --build-arg PIP_INDEX_URL
       -f docker/worker.Dockerfile
@@ -82,18 +78,7 @@ test:
         -e PROCESS_TYPE=test
         $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA
 
-###############################################################
-# End-to-end Stage
-###############################################################
-
-e2e:
-  stage: e2e
-  tags:
-    - kube-new
-  script:
-    - e2e run
-
-###############################################################
+############################
 # Release Stage
 ###############################################################
 
