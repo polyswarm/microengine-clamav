@@ -31,9 +31,9 @@ def scan(bounty: Bounty) -> ScanResult:
                          vendor_version=vendor.strip('\n'))
     if len(stream_result) >= 2 and stream_result[0] == 'FOUND':
         metadata.set_malware_family(stream_result[1].strip('\n'))
-        return ScanResult(verdict=Verdict.MALICIOUS, confidence=1.0, metadata=metadata.json())
+        return ScanResult(verdict=Verdict.MALICIOUS, confidence=1.0, metadata=metadata)
 
-    return ScanResult(verdict=Verdict.BENIGN, metadata=metadata.json())
+    return ScanResult(verdict=Verdict.BENIGN, metadata=metadata)
 
 
 def compute_bid(bounty: Bounty, scan_result: ScanResult) -> int:
