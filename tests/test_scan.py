@@ -24,9 +24,6 @@ def test_scan_malicious(requests_mock, mocker):
     requests_mock.get(artifact_uri, text=EICAR_STRING.decode('utf-8'))
     requests_mock.post(response_url, text='Success')
 
-    metadata = Metadata()
-    metadata.malware_family = 'EICAR-TEST-FILE'
-
     bounty = Bounty(id=12345,
                     artifact_type='FILE',
                     artifact_uri=artifact_uri,
@@ -36,16 +33,19 @@ def test_scan_malicious(requests_mock, mocker):
                     phase='assertion_window',
                     response_url=response_url,
                     rules={
-                        'max_allowed_bid': 1 * 10 ** 18,
-                        'min_allowed_bid': 1 * 10 ** 18 / 16,
+                        'max_allowed_bid': to_wei(1),
+                        'min_allowed_bid': to_wei(1/16)
                     }
                     )
 
     handle_bounty(dataclasses.asdict(bounty))
-    metadata = Metadata()
-    metadata.malware_family = 'EICAR-TEST-FILE'
-    expected_result = Assertion(Verdict.MALICIOUS.value, to_wei(1), metadata.dict())
-    spy.assert_called_once_with(bounty, expected_result)
+
+    # Have to dissect the call, since we don't know what the metadata will be, it is version dependent.
+    called_bounty = spy.mock_calls[0][1][0]
+    called_assertion = spy.mock_calls[0][1][1]
+    assert called_bounty == bounty
+    assert called_assertion.verdict == Verdict.MALICIOUS.value
+    assert called_assertion.bid == to_wei(1)
 
 
 def test_scan_benign(requests_mock, mocker):
@@ -72,8 +72,11 @@ def test_scan_benign(requests_mock, mocker):
                     }
                     )
 
-    metadata = Metadata()
-    metadata.malware_family = ''
     handle_bounty(dataclasses.asdict(bounty))
-    expected_result = Assertion(Verdict.BENIGN.value, to_wei(1), metadata.dict())
-    spy.assert_called_once_with(bounty, expected_result)
+
+    # Have to dissect the call, since we don't know what the metadata will be, it is version dependent.
+    called_bounty = spy.mock_calls[0][1][0]
+    called_assertion = spy.mock_calls[0][1][1]
+    assert called_bounty == bounty
+    assert called_assertion.verdict == Verdict.BENIGN.value
+    assert called_assertion.bid == to_wei(1)
