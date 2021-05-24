@@ -80,6 +80,7 @@ test:
         -e PYTHONUNBUFFERED=1
         -e PROCESS_TYPE=test
         -e CLAMD_HOST=clamav
+        -e CLAMD_PORT=3310
         $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA
 
 ############################
