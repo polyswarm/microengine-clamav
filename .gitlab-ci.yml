@@ -76,7 +76,7 @@ test:
     - docker pull $REPO_URL/docker-clamav
     - docker network create test
     - docker run -d --network test --network-alias clamav $REPO_URL/docker-clamav
-    - sleep 3
+    - sleep 15
     - docker run --network test
         -e PYTHONUNBUFFERED=1
         -e PROCESS_TYPE=test
