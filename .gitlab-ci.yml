@@ -36,7 +36,7 @@ build-nginx:
     - sed "s#FROM nginx/unit#FROM $REPO_URL/unit#" docker/Dockerfile > docker/Dockerfile.ci
     - docker build
       --build-arg PIP_INDEX_URL
-      -f docker/Dockerfile
+      -f docker/Dockerfile.ci
       -t $REPO_URL/$BASE_IMAGE_NAME:$CI_COMMIT_SHA
       -t $REPO_URL/$BASE_IMAGE_NAME:$CI_COMMIT_REF_SLUG
       --cache-from=$REPO_URL/$BASE_IMAGE_NAME:latest
@@ -53,7 +53,7 @@ build-worker:
     - sed "s#FROM python#FROM $REPO_URL/python#" docker/worker.Dockerfile > docker/worker.Dockerfile.ci
     - docker build
       --build-arg PIP_INDEX_URL
-      -f docker/worker.Dockerfile
+      -f docker/worker.Dockerfile.ci
       -t $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA
       -t $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_REF_SLUG
       --cache-from=$REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:latest
