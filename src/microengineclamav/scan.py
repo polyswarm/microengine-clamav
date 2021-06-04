@@ -16,8 +16,6 @@ MACHINE = platform.machine()
 def scan(bounty: Bounty) -> ScanResult:
     metadata = ScanMetadata()
     metadata.malware_family = ''
-    if ArtifactType.from_string(bounty.artifact_type.lower()) != ArtifactType.FILE:
-        return ScanResult(verdict=Verdict.UNKNOWN, confidence=0, metadata=metadata)
 
     content = bounty.fetch_artifact()
     # No need to close this. Each connection is opened and closed in each method
