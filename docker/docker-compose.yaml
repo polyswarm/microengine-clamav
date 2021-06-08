@@ -42,9 +42,11 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - CELERY_BROKER_URL=pyamqp://guest@rabbitmq//
-      - WEBHOOK_SECRET=772f9433a4d9149e2c64
+      - WEBHOOK_SECRET=qwertyuiop
       - LOG_LEVEL=DEBUG
       - LOG_FORMAT=text
+      - CLAMD_HOST=clamav-daemon
+      - CLAMD_PORT=3310
   clamav-daemon:
     image: "mkodockx/docker-clamav"
     ports:
