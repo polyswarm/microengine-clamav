@@ -37,18 +37,6 @@ spec:
             - name: clamd
               containerPort: {{ .Values.clamd.port }}
               protocol: TCP
-          livenessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - check.sh
-          readinessProbe:
-            exec:
-              command:
-                - /bin/sh
-                - -c
-                - check.sh
           resources:
             {{- toYaml .Values.clamd.resources | nindent 12 }}
       {{- with .Values.clamd.nodeSelector }}
