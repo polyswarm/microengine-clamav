@@ -14,9 +14,6 @@ MACHINE = platform.machine()
 
 
 def scan(bounty: Bounty) -> ScanResult:
-    metadata = ScanMetadata()
-    metadata.malware_family = ''
-
     content = bounty.fetch_artifact()
     # No need to close this. Each connection is opened and closed in each method
     clamd_socket = clamd.ClamdNetworkSocket(settings.CLAMD_HOST, settings.CLAMD_PORT, settings.CLAMD_TIMEOUT)
@@ -24,9 +21,10 @@ def scan(bounty: Bounty) -> ScanResult:
     stream_result = result.get('stream', [])
 
     vendor = clamd_socket.version()
-    metadata.set_scanner(operating_system=SYSTEM,
-                         architecture=MACHINE,
-                         vendor_version=vendor.strip('\n'))
+    metadata = ScanMetadata().set_malware_family('')\
+                             .set_scanner(operating_system=SYSTEM,
+                                          architecture=MACHINE,
+                                          vendor_version=vendor.strip('\n'))
     if len(stream_result) >= 2 and stream_result[0] == 'FOUND':
         metadata.set_malware_family(stream_result[1].strip('\n'))
         return ScanResult(verdict=Verdict.MALICIOUS, confidence=1.0, metadata=metadata)
