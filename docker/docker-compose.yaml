@@ -45,6 +45,10 @@ services:
       - WEBHOOK_SECRET=772f9433a4d9149e2c64
       - LOG_LEVEL=DEBUG
       - LOG_FORMAT=text
+  clamav-daemon:
+    image: "mkodockx/docker-clamav"
+    ports:
+      - 3310:3310
 
 networks:
   microengine-webhooks:
