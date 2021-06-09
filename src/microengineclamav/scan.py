@@ -5,7 +5,7 @@ import platform
 from microengineclamav.models import Bounty, ScanResult, Verdict
 from microengineclamav import settings
 
-from polyswarmartifact.schema import Verdict as ScanMetadata
+from polyswarmartifact.schema import ScanMetadata
 from polyswarmartifact.artifact_type import ArtifactType
 
 

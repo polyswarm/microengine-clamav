@@ -3,7 +3,7 @@ import enum
 import requests
 
 from typing import List, Dict, Any, Optional
-from polyswarmartifact.schema import Verdict as ScanMetadata
+from polyswarmartifact.schema import ScanMetadata
 
 
 class Verdict(enum.Enum):
