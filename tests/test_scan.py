@@ -6,8 +6,6 @@ from microengineclamav.models import Bounty, Verdict, Assertion
 from microengineclamav.utils import to_wei
 from microengineclamav.tasks import handle_bounty
 
-from polyswarmartifact.schema import Verdict as Metadata
-
 
 EICAR_STRING = base64.b64decode(
     b'WDVPIVAlQEFQWzRcUFpYNTQoUF4pN0NDKTd9JEVJQ0FSLVNUQU5EQVJELUFOVElWSVJVUy1URVNULUZJTEUhJEgrSCo='
