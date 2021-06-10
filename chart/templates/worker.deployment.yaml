@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "microengine-clamav.fullname" . }}-worker
+  labels:
+    {{- include "microengine-clamav.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.worker.autoscaling.enabled }}
+  replicas: {{ .Values.worker.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      {{- include "microengine-clamav.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.worker.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "microengine-clamav.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.worker.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "microengine-clamav.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.worker.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.worker.securityContext | nindent 12 }}
+          image: "{{ .Values.worker.image.repository }}:{{ .Values.worker.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+          env:
+          - name: CELERY_BROKER_URL
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "microengine-clamav.fullname" . }}
+                key: CELERY_BROKER_URL
+          - name: WEBHOOK_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "microengine-clamav.fullname" . }}
+                key: WEBHOOK_SECRET
+          - name: LOG_LEVEL
+            value: {{ .Values.worker.logLevel }}
+          - name: LOG_FORMAT
+            value: {{ .Values.worker.logFormat }}
+          - name: PROCESS_TYPE
+            value: {{ .Values.worker.processType }}
+          - name: CLAMD_HOST
+            value: {{ .Release.Name }}-{{ include "microengine-clamav.name" . }}-clamd
+          - name: CLAMD_PORT
+            value: {{ .Values.clamd.service.port | quote }}
+          {{- with .Values.worker.clamdTimeout }}
+          - name: CLAMD_TIMEOUT
+            value: {{ . | quote }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+      {{- with .Values.worker.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

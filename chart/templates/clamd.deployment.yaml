@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "microengine-clamav.fullname" . }}-clamd
+  labels:
+    {{- include "microengine-clamav.labels" . | nindent 4 }}
+spec:
+{{- if not .Values.clamd.autoscaling.enabled }}
+  replicas: {{ .Values.clamd.replicaCount }}
+{{- end }}
+  selector:
+    matchLabels:
+      {{- include "microengine-clamav.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+    {{- with .Values.clamd.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      labels:
+        {{- include "microengine-clamav.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.clamd.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "microengine-clamav.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.clamd.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.clamd.securityContext | nindent 12 }}
+          image: "{{ .Values.clamd.image.repository }}:{{ .Values.clamd.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.clamd.image.pullPolicy }}
+          ports:
+            - name: clamd
+              containerPort: {{ .Values.clamd.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.clamd.resources | nindent 12 }}
+      {{- with .Values.clamd.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clamd.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clamd.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

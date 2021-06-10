@@ -1,23 +1,111 @@
-image: docker:stable
+image: $REPO_URL/stage
 
 services:
   - docker:dind
 
-before_script:
-  - apk --no-cache add curl
+stages:
+  - build
+  - test
+  - e2e
+  - release
+  - deployment
 
-build-docker:
-    tags:
-        - docker
-    stage: test
-    script: 
-        - docker build -t ${CI_PROJECT_PATH} -f docker/Dockerfile.microengine-clamav .
-        
-kick-e2e:
-    only: 
-        - master
-    tags:
-        - docker
-    stage: deploy
-    script:
-       - curl --request POST --form "token=$CI_JOB_TOKEN" --form ref=master https://gitlab.polyswarm.io/api/v4/projects/${CI_CUSTOM_PROJECT_ID_META}/trigger/pipeline
+variables:
+  DOCKER_HOST: tcp://localhost:2376/
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_VERIFY: 1
+  DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+  BASE_IMAGE_NAME: microengine-clamav
+  WORKER_SUFFIX: worker
+
+default:
+  before_script:
+    - sleep 2
+    - pip install -q $END_TO_END_LIB@$CI_COMMIT_REF_NAME || pip install -q $END_TO_END_LIB
+    - e2e init
+
+###############################################################
+# Build Stage (jobs inside a stage run in parallel)
+###############################################################
+
+build-nginx:
+  stage: build
+  tags:
+    - kube-small-new
+  script:
+    - sed "s#FROM nginx/unit#FROM $REPO_URL/unit#" docker/Dockerfile > docker/Dockerfile.ci
+    - docker build
+      --build-arg PIP_INDEX_URL
+      -f docker/Dockerfile.ci
+      -t $REPO_URL/$BASE_IMAGE_NAME:$CI_COMMIT_SHA
+      -t $REPO_URL/$BASE_IMAGE_NAME:$CI_COMMIT_REF_SLUG
+      --cache-from=$REPO_URL/$BASE_IMAGE_NAME:latest
+      --build-arg=BUILD=`date --utc +%F_%R`-$CI_COMMIT_SHORT_SHA
+      .
+    - docker push $REPO_URL/$BASE_IMAGE_NAME:$CI_COMMIT_SHA
+    - docker push $REPO_URL/$BASE_IMAGE_NAME:$CI_COMMIT_REF_SLUG
+
+build-worker:
+  stage: build
+  tags:
+    - kube-small-new
+  script:
+    - sed "s#FROM python#FROM $REPO_URL/python#" docker/worker.Dockerfile > docker/worker.Dockerfile.ci
+    - docker build
+      --build-arg PIP_INDEX_URL
+      -f docker/worker.Dockerfile.ci
+      -t $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA
+      -t $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_REF_SLUG
+      --cache-from=$REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:latest
+      --build-arg=BUILD=`date --utc +%F_%R`-$CI_COMMIT_SHORT_SHA
+      .
+    - docker push $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA
+    - docker push $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_REF_SLUG
+
+###############################################################
+# Test Stage
+###############################################################
+
+test:
+  stage: test
+  tags:
+    - kube-small-new
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  script:
+    - docker pull $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA
+    - docker pull $REPO_URL/docker-clamav
+    - docker network create test
+    - docker run -d --network test --network-alias clamav $REPO_URL/docker-clamav
+    - sleep 30
+    - docker run --network test
+        -e PYTHONUNBUFFERED=1
+        -e PROCESS_TYPE=test
+        -e CLAMD_HOST=clamav
+        -e CLAMD_PORT=3310
+        $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA
+
+############################
+# Release Stage
+###############################################################
+
+release:
+  stage: release
+  tags:
+    - kube-small-new
+  script:
+    - docker pull $REPO_URL/$BASE_IMAGE_NAME:$CI_COMMIT_SHA
+    - docker tag $REPO_URL/$BASE_IMAGE_NAME:$CI_COMMIT_SHA $REPO_URL/$BASE_IMAGE_NAME:latest
+    - docker push $REPO_URL/$BASE_IMAGE_NAME:latest
+  only:
+    - master
+
+release-worker:
+  stage: release
+  tags:
+    - kube-small-new
+  script:
+    - docker pull $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA
+    - docker tag $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:latest
+    - docker push $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:latest
+  only:
+    - master

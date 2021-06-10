@@ -1,5 +1,1 @@
-*.swp
-data/
-staging
-priv_testnet/
-*.xz
+chart/
