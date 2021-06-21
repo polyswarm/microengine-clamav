@@ -51,6 +51,11 @@ services:
     image: "mkodockx/docker-clamav"
     ports:
       - 3310:3310
+    environment:
+      - HTTPProxyServer=clamav-proxy
+      - HTTPProxyPort=3128
+  clamav-proxy:
+    image: "minimum2scp/squid"
 
 networks:
   microengine-webhooks:
