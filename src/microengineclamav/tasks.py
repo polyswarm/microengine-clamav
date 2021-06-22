@@ -11,6 +11,7 @@ celery_app = Celery('tasks', broker=settings.BROKER)
 def handle_bounty(bounty):
     bounty = Bounty(**bounty)
     scan_result = scan(bounty)
+    logger.debug('Bounty %s got ScanResult %s', bounty, scan_result)
 
     if bounty.phase == Phase.ARBITRATION:
         scan_response = scan_result.to_vote()
