@@ -51,7 +51,7 @@ spec:
           - name: PROCESS_TYPE
             value: {{ .Values.worker.processType }}
           - name: CLAMD_HOST
-            value: {{ .Release.Name }}-{{ include "microengine-clamav.name" . }}-clamd
+            value: {{ include "microengine-clamav.fullname" . }}-clamd
           - name: CLAMD_PORT
             value: {{ .Values.clamd.service.port | quote }}
           {{- with .Values.worker.clamdTimeout }}
