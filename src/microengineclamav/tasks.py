@@ -11,6 +11,7 @@ logger = get_task_logger(__name__)
 @celery_app.task
 def handle_bounty(bounty):
     bounty = Bounty(**bounty)
+    logger.debug('Got bounty %s', bounty)
     scan_result = scan(bounty)
     logger.debug('Bounty %s got ScanResult %s', bounty, scan_result)
 
