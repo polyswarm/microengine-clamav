@@ -135,6 +135,8 @@ nginx:
 
 clamd:
   port: 3310
+  httpProxyHost: ''
+  httpProxyPort: 3128
 
   replicaCount: 1
 
@@ -178,12 +180,12 @@ clamd:
     #      - chart-example.local
 
   resources:
-     limits:
-       cpu: 500m
-       memory: 512Mi
-     requests:
-       cpu: 200m
-       memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
 
   autoscaling:
     enabled: false

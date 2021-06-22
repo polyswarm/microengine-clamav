@@ -21,8 +21,6 @@ variables:
 default:
   before_script:
     - sleep 2
-    - pip install -q $END_TO_END_LIB@$CI_COMMIT_REF_NAME || pip install -q $END_TO_END_LIB
-    - e2e init
 
 ###############################################################
 # Build Stage (jobs inside a stage run in parallel)
@@ -65,24 +63,6 @@ build-worker:
 ###############################################################
 # Test Stage
 ###############################################################
-
-test:
-  stage: test
-  tags:
-    - kube-small-new
-  coverage: '/TOTAL.*\s+(\d+%)$/'
-  script:
-    - docker pull $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA
-    - docker pull $REPO_URL/docker-clamav
-    - docker network create test
-    - docker run -d --network test --network-alias clamav $REPO_URL/docker-clamav
-    - sleep 30
-    - docker run --network test
-        -e PYTHONUNBUFFERED=1
-        -e PROCESS_TYPE=test
-        -e CLAMD_HOST=clamav
-        -e CLAMD_PORT=3310
-        $REPO_URL/$BASE_IMAGE_NAME-$WORKER_SUFFIX:$CI_COMMIT_SHA
 
 ############################
 # Release Stage
