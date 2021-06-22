@@ -21,8 +21,6 @@ variables:
 default:
   before_script:
     - sleep 2
-    - pip install -q $END_TO_END_LIB@$CI_COMMIT_REF_NAME || pip install -q $END_TO_END_LIB
-    - e2e init
 
 ###############################################################
 # Build Stage (jobs inside a stage run in parallel)
