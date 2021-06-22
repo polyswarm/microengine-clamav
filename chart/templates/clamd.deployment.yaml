@@ -33,11 +33,13 @@ spec:
             {{- toYaml .Values.clamd.securityContext | nindent 12 }}
           image: "{{ .Values.clamd.image.repository }}:{{ .Values.clamd.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.clamd.image.pullPolicy }}
+          {{- if .Values.clamd.httpProxyHost }}
           env:
             - name: HTTPProxyServer
               value: {{ .Values.clamd.httpProxyHost | quote }}
             - name: HTTPProxyPort
               value: {{ .Values.clamd.httpProxyPort | quote }}
+          {{- end }}
           ports:
             - name: clamd
               containerPort: {{ .Values.clamd.port }}
