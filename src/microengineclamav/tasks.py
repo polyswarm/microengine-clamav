@@ -1,10 +1,13 @@
+import logging
+
 from celery import Celery
 
-from microengineclamav.models import Bounty, ScanResult, Verdict, Assertion
+from microengineclamav.models import Bounty, ScanResult, Verdict, Assertion, Phase
 from microengineclamav import settings
 from microengineclamav.scan import scan, compute_bid
 
 celery_app = Celery('tasks', broker=settings.BROKER)
+logger = logging.getLogger(__name__)
 
 
 @celery_app.task
