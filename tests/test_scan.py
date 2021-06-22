@@ -3,9 +3,9 @@ import datetime
 
 from io import BytesIO
 
-from microenginewebhookspy.models import Bounty, Verdict
-from microenginewebhookspy.utils import to_wei
-from microenginewebhookspy.tasks import handle_bounty
+from microengineclamav.models import Bounty, Verdict
+from microengineclamav.utils import to_wei
+from microengineclamav.tasks import handle_bounty
 
 from tests import EICAR_STRING
 
