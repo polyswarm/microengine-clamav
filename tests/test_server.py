@@ -1,4 +1,3 @@
-import base64
 import dataclasses
 import datetime
 import pytest
@@ -8,10 +7,7 @@ import microengineclamav.tasks
 from microengineclamav.views import Bounty
 from microengineclamav.wsgi import app
 
-
-EICAR_STRING = base64.b64decode(
-    b'WDVPIVAlQEFQWzRcUFpYNTQoUF4pN0NDKTd9JEVJQ0FSLVNUQU5EQVJELUFOVElWSVJVUy1URVNULUZJTEUhJEgrSCo='
-)
+from tests import EICAR_STRING
 
 
 @pytest.fixture(autouse=True)
