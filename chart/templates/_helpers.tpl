@@ -51,6 +51,33 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Selector labels
+*/}}
+{{- define "microengine-clamav.nginx.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "microengine-clamav.name" . }}-worker
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Selector labels
+*/}}
+{{- define "microengine-clamav.worker.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "microengine-clamav.name" . }}-worker
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Selector labels
+*/}}
+{{- define "microengine-clamav.clamd.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "microengine-clamav.name" . }}-clamd
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+
+
+
+{{/*
 Create the name of the service account to use
 */}}
 {{- define "microengine-clamav.serviceAccountName" -}}
