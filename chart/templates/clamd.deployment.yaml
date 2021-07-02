@@ -10,7 +10,7 @@ spec:
 {{- end }}
   selector:
     matchLabels:
-      {{- include "microengine-clamav.clamd.electorLabels" . | nindent 6 }}
+      {{- include "microengine-clamav.clamd.selectorLabels" . | nindent 6 }}
   template:
     metadata:
     {{- with .Values.clamd.podAnnotations }}
