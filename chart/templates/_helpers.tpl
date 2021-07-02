@@ -66,7 +66,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 nginx selector labels
 */}}
 {{- define "microengine-clamav.nginx.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "microengine-clamav.name" . }}-worker
+app.kubernetes.io/name: {{ include "microengine-clamav.name" . }}-nginx
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
