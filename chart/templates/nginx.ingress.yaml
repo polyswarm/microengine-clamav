@@ -10,7 +10,7 @@ kind: Ingress
 metadata:
   name: {{ $fullName }}-nginx
   labels:
-    {{- include "microengine-clamav.labels" . | nindent 4 }}
+    {{- include "microengine-clamav.nginx.labels" . | nindent 4 }}
   {{- with .Values.nginx.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}

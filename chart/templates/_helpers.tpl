@@ -51,7 +51,19 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Selector labels
+nginx labels
+*/}}
+{{- define "microengine-clamav.nginx.labels" -}}
+helm.sh/chart: {{ include "microengine-clamav.chart" . }}
+{{ include "microengine-clamav.nginx.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+nginx selector labels
 */}}
 {{- define "microengine-clamav.nginx.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "microengine-clamav.name" . }}-worker
@@ -59,11 +71,35 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Selector labels
+worker labels
+*/}}
+{{- define "microengine-clamav.worker.labels" -}}
+helm.sh/chart: {{ include "microengine-clamav.chart" . }}
+{{ include "microengine-clamav.worker.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+worker selector labels
 */}}
 {{- define "microengine-clamav.worker.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "microengine-clamav.name" . }}-worker
 app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+clamd labels
+*/}}
+{{- define "microengine-clamav.clamd.labels" -}}
+helm.sh/chart: {{ include "microengine-clamav.chart" . }}
+{{ include "microengine-clamav.clamd.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
@@ -73,9 +109,6 @@ Selector labels
 app.kubernetes.io/name: {{ include "microengine-clamav.name" . }}-clamd
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
-
-
-
 
 {{/*
 Create the name of the service account to use
