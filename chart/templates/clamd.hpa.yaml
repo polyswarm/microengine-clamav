@@ -4,7 +4,7 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "microengine-clamav.fullname" . }}-clamd
   labels:
-    {{- include "microengine-clamav.labels" . | nindent 4 }}
+    {{- include "microengine-clamav.clamd.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

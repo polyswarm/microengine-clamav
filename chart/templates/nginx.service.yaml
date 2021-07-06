@@ -3,7 +3,7 @@ kind: Service
 metadata:
   name: {{ include "microengine-clamav.fullname" . }}-nginx
   labels:
-    {{- include "microengine-clamav.labels" . | nindent 4 }}
+    {{- include "microengine-clamav.nginx.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.nginx.service.type }}
   ports:
@@ -12,4 +12,4 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{- include "microengine-clamav.selectorLabels" . | nindent 4 }}
+    {{- include "microengine-clamav.nginx.selectorLabels" . | nindent 4 }}

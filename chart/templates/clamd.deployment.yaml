@@ -3,14 +3,14 @@ kind: Deployment
 metadata:
   name: {{ include "microengine-clamav.fullname" . }}-clamd
   labels:
-    {{- include "microengine-clamav.labels" . | nindent 4 }}
+    {{- include "microengine-clamav.clamd.labels" . | nindent 4 }}
 spec:
 {{- if not .Values.clamd.autoscaling.enabled }}
   replicas: {{ .Values.clamd.replicaCount }}
 {{- end }}
   selector:
     matchLabels:
-      {{- include "microengine-clamav.selectorLabels" . | nindent 6 }}
+      {{- include "microengine-clamav.clamd.selectorLabels" . | nindent 6 }}
   template:
     metadata:
     {{- with .Values.clamd.podAnnotations }}
@@ -18,7 +18,7 @@ spec:
         {{- toYaml . | nindent 8 }}
     {{- end }}
       labels:
-        {{- include "microengine-clamav.selectorLabels" . | nindent 8 }}
+        {{- include "microengine-clamav.clamd.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.clamd.imagePullSecrets }}
       imagePullSecrets:
