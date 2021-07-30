@@ -20,12 +20,12 @@ def scan(bounty: Bounty) -> ScanResult:
     try:
         vendor = clamd_socket.version()
         result = clamd_socket.instream(io.BytesIO(content))
-    except clamd.ConnectionError:
+    except clamd.ConnectionError as err:
         logger.exception('Error connecting to clamd')
-        raise errors.CalledProcessScanError('Unable to connect')
-    except clamd.ResponseError:
+        raise errors.CalledProcessScanError('Unable to connect') from err
+    except clamd.ResponseError as err:
         logger.exception('Error in clamd')
-        raise errors.CalledProcessScanError('Bad response')
+        raise errors.CalledProcessScanError('Bad response') from err
 
     stream_result = result.get('stream', [])
     metadata = ScanMetadata().set_malware_family('')\
