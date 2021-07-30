@@ -17,6 +17,12 @@ CLAMD_HOST = os.getenv('CLAMD_HOST', 'localhost')
 CLAMD_PORT = int(os.getenv('CLAMD_PORT', '3310'))
 CLAMD_TIMEOUT = float(os.getenv('CLAMD_TIMEOUT', '30.0'))
 
+# Metrics values
+DATADOG_API_KEY = os.environ.get('DATADOG_API_KEY')
+DATADOG_APP_KEY = os.environ.get('DATADOG_APP_KEY')
+ENGINE_NAME = os.environ.get('ENGINE_NAME', 'microengine-webhooks-py')
+POLY_WORK = os.environ.get('POLY_WORK', 'local')
+
 
 class JSONFormatter(jsonlogger.JsonFormatter):
     """

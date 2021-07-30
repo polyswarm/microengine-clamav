@@ -17,10 +17,17 @@ def scan(bounty: Bounty) -> ScanResult:
     content = bounty.fetch_artifact()
     # No need to close this. Each connection is opened and closed in each method
     clamd_socket = clamd.ClamdNetworkSocket(settings.CLAMD_HOST, settings.CLAMD_PORT, settings.CLAMD_TIMEOUT)
-    result = clamd_socket.instream(io.BytesIO(content))
-    stream_result = result.get('stream', [])
+    try:
+        vendor = clamd_socket.version()
+        result = clamd_socket.instream(io.BytesIO(content))
+    except clamd.ConnectionError:
+        logger.exception('Error connecting to clamd')
+        raise errors.CalledProcessScanError('Unable to connect')
+    except clamd.ResponseError:
+        logger.exception('Error in clamd')
+        raise errors.CalledProcessScanError('Bad response')
 
-    vendor = clamd_socket.version()
+    stream_result = result.get('stream', [])
     metadata = ScanMetadata().set_malware_family('')\
                              .set_scanner(operating_system=SYSTEM,
                                           architecture=MACHINE,

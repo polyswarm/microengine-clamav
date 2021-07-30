@@ -28,6 +28,7 @@ setup(
         "celery",
         "clamd",
         "Flask",
+        "microengine-utils",
         "polyswarm-artifact",
         "requests",
         "python-json-logger"
