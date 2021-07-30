@@ -36,7 +36,7 @@ def handle_bounty(bounty):
                                                                 f'verdict:{scan_result.verdict.value}'])
         except errors.CalledProcessScanError:
             handle_bounty.metrics.increment(
-                SCAN_FAIL, tags=[f'type:{bounty.artifact_type}', 'scan_error: Error running scan process']
+                SCAN_FAIL, tags=[f'type:{bounty.artifact_type}', 'scan_error:calledprocess']
             )
 
     if bounty.phase == Phase.ARBITRATION:
