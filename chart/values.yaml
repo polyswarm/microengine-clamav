@@ -20,6 +20,7 @@ worker:
   processType: "celery"
   clamdPort: 3310
   polyWork: ""
+  engineName: "clamav"
 
   replicaCount: 1
 

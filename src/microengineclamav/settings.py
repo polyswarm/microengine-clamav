@@ -20,7 +20,7 @@ CLAMD_TIMEOUT = float(os.getenv('CLAMD_TIMEOUT', '30.0'))
 # Metrics values
 DATADOG_API_KEY = os.environ.get('DATADOG_API_KEY')
 DATADOG_APP_KEY = os.environ.get('DATADOG_APP_KEY')
-ENGINE_NAME = os.environ.get('ENGINE_NAME', 'microengine-webhooks-py')
+ENGINE_NAME = os.environ.get('ENGINE_NAME', 'clamav')
 POLY_WORK = os.environ.get('POLY_WORK', 'local')
 
 

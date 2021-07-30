@@ -64,6 +64,8 @@ spec:
             value: {{ .Values.worker.processType }}
           - name: POLY_WORK
             value: {{ .Values.worker.polyWork }}
+          - name: ENGINE_NAME
+            value: {{ .Values.worker.engineName }}
           - name: CLAMD_HOST
             value: {{ include "microengine-clamav.fullname" . }}-clamd
           - name: CLAMD_PORT
