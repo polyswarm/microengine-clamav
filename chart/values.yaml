@@ -19,6 +19,7 @@ worker:
   logFormat: "json"
   processType: "celery"
   clamdPort: 3310
+  polyWork: ""
 
   replicaCount: 1
 
