@@ -10,7 +10,7 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=user
       - RABBITMQ_DEFAULT_PASS=password
-  celery:
+  worker:
     build:
       context: ../
       dockerfile: docker/worker.Dockerfile
@@ -20,6 +20,8 @@ services:
       - PYTHONUNBUFFERED=1
       - CELERY_BROKER_URL=pyamqp://user:password@rabbitmq//
       - PROCESS_TYPE=celery
+      - CLAMD_HOST=clamav-daemon
+      - CLAMD_PORT=3310
   integration:
     build:
       context: ../
@@ -48,8 +50,6 @@ services:
       - WEBHOOK_SECRET=qwertyuiop
       - LOG_LEVEL=DEBUG
       - LOG_FORMAT=text
-      - CLAMD_HOST=clamav-daemon
-      - CLAMD_PORT=3310
   clamav-daemon:
     image: "mkodockx/docker-clamav:buster-slim"
     ports:
