@@ -1,13 +1,17 @@
 import clamd
 import io
 import platform
+import logging
 
 from microengineclamav.models import Bounty, ScanResult, Verdict
 from microengineclamav import settings
 
 from polyswarmartifact.schema import ScanMetadata
 from polyswarmartifact.artifact_type import ArtifactType
+from microengine_utils import errors
 
+
+logger = logging.getLogger(__name__)
 
 SYSTEM = platform.system()
 MACHINE = platform.machine()
