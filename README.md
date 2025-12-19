@@ -1,7 +1,10 @@
 # microengine-clamav
 
-This project provides a ClamAV-based microengine that can be used as a base to build more complicated microengines.
-Users should be able to quickly get running by editing only one file with two functions to get started.
+This project provides a ClamAV-based microengine based on the EICAR microengine
+template available on https://github.com/polyswarm/microengine-webhooks-py.git.
+It can be further improved and used as a base to build more complicated microengines.
+Users should be able to quickly get running by editing only one file
+with two functions to get started.
 
 # Quickstart
 
