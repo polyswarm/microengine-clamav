@@ -220,7 +220,7 @@ typing-inspection==0.4.1
     #   pydantic-settings
 tzdata==2025.2
     # via kombu
-urllib3==1.26.20
+urllib3==2.6.0
     # via
     #   botocore
     #   docker
