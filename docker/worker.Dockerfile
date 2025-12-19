@@ -1,8 +1,10 @@
-FROM python:3.7-slim-buster
+FROM python:3.11-slim-bullseye
 
-ENV PROCESS_TYPE="celery" \
+ENV PROCESS_TYPE="worker" \
     PROCFILE="docker/Procfile" \
     FLASK_APP="tests.integration.base"
+
+WORKDIR /usr/src/app
 
 RUN apt-get update -y \
     && apt-get install -qy --no-install-recommends apt-utils \
@@ -15,15 +17,17 @@ RUN apt-get update -y \
         gcc libc-dev pkg-config make file \
         git-core \
         wget \
-        g++
-
-WORKDIR /usr/src/app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
+        g++ \
+    && useradd -ms /bin/bash worker \
+    && chown -R worker:worker /usr/src/app \
     && pip install --no-cache-dir honcho
 
-COPY . .
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+USER worker
+
+COPY --chown=worker:worker . .
 RUN pip install .
 
 EXPOSE 5000
