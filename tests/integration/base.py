@@ -2,8 +2,11 @@ import hmac
 import os
 import random
 import requests
+import http.client
 
 from flask import Flask, request, jsonify
+
+http.client.HTTPConnection.debuglevel = 5
 
 WEBHOOK_URL = os.environ.get('WEBHOOK_URL')
 WEBHOOK_SECRET = os.environ.get('WEBHOOK_SECRET')
