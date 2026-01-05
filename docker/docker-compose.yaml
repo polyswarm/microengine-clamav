@@ -1,15 +1,23 @@
-version: '3.7'
-
 services:
   rabbitmq:
-    image: rabbitmq
+    image: rabbitmq:management
     ports:
       - "5672:5672"
+      - "15672:15672"
     networks:
       - microengine-webhooks
+      - default
     environment:
       - RABBITMQ_DEFAULT_USER=user
       - RABBITMQ_DEFAULT_PASS=password
+      - RABBITMQ_LOGS=-
+      - RABBITMQ_LOG=info
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 10s
   worker:
     build:
       context: ../
@@ -18,10 +26,16 @@ services:
       - microengine-webhooks
     environment:
       - PYTHONUNBUFFERED=1
-      - CELERY_BROKER_URL=pyamqp://user:password@rabbitmq//
-      - PROCESS_TYPE=celery
+      - PSENGINE_BROKER_URL=pyamqp://user:password@rabbitmq:5672
+      - PROCESS_TYPE=worker
       - CLAMD_HOST=clamav-daemon
       - CLAMD_PORT=3310
+      - LOG_LEVEL=DEBUG
+    depends_on:
+      clamav-daemon:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
   integration:
     build:
       context: ../
@@ -34,32 +48,39 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - WEBHOOK_SECRET=qwertyuiop
-      - WEBHOOK_URL=http://microengine-webhooks:8080/
+      - WEBHOOK_URL=http://microengine-webhooks:8000/
       - PROCESS_TYPE=integration
   microengine-webhooks:
     build:
       context: ../
       dockerfile: docker/Dockerfile
     ports:
-      - "8080:8080"
+      - "8000:8000"
     networks:
       - microengine-webhooks
+      - default
     environment:
       - PYTHONUNBUFFERED=1
-      - CELERY_BROKER_URL=pyamqp://user:password@rabbitmq//
+      - PSENGINE_BROKER_URL=pyamqp://user:password@rabbitmq:5672/
       - WEBHOOK_SECRET=qwertyuiop
       - LOG_LEVEL=DEBUG
       - LOG_FORMAT=text
+    depends_on:
+      - rabbitmq
   clamav-daemon:
-    image: "mkodockx/docker-clamav:buster-slim"
+    build:
+      context: ../
+      dockerfile: docker/backend.Dockerfile
     ports:
       - 3310:3310
-    environment:
-      - HTTPProxyServer=clamav-proxy
-      - HTTPProxyPort=3128
-  clamav-proxy:
-    image: "minimum2scp/squid"
-
+    networks:
+      - microengine-webhooks
+    healthcheck:
+      test: "clamdcheck.sh"
+      interval: 10s
+      retries: 50
+      start_period: 30s
+      timeout: 10s
 networks:
   microengine-webhooks:
     driver: bridge
